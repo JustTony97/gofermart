@@ -30,25 +30,31 @@ func main() {
 	defer db.Close()
 
 	userRepo := repository.NewUsersRepository(db)
-	userService := service.NewUserService(userRepo, cfg)
+	userService := service.NewUserService(userRepo, &cfg)
+	orderRepo := repository.NewOrderRepository(db)
+	orderService := service.NewOrderService(orderRepo, &cfg)
 
-	userHandler := handler.NewUserHandler(userService, cfg)
-	ordersHandler := handler.OrdersHandler{}
+	userHandler := handler.NewUserHandler(userService, &cfg)
+	ordersHandler := handler.NewOrderHandler(orderService, &cfg)
 	balanceHandler := handler.BalanceHandler{}
 
+	authMiddleware := middlewares.NewAuthMiddleware(cfg)
 	r := chi.NewRouter()
 	r.Use(middlewares.WithLogging)
 
 	r.Route("/api/user", func(r chi.Router) {
 		r.Post("/register", userHandler.Register)
 		r.Post("/login", userHandler.Login)
+		r.Group(func(r chi.Router) {
+			r.Use(authMiddleware.RequireAuth)
 
-		r.Post("/orders", ordersHandler.UploadOrder)
-		r.Get("/orders", ordersHandler.GetOrders)
+			r.Post("/orders", ordersHandler.UploadOrder)
+			r.Get("/orders", ordersHandler.GetOrders)
 
-		r.Get("/balance", balanceHandler.GetBalance)
-		r.Post("/balance/withdraw", balanceHandler.Withdraw)
-		r.Get("/withdrawals", balanceHandler.GetWithdrawals)
+			r.Get("/balance", balanceHandler.GetBalance)
+			r.Post("/balance/withdraw", balanceHandler.Withdraw)
+			r.Get("/withdrawals", balanceHandler.GetWithdrawals)
+		})
 	})
 
 	log.Printf("Server started on %s", cfg.ServerAddress)

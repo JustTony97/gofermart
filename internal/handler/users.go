@@ -19,10 +19,10 @@ type UserService interface {
 
 type UserHandler struct {
 	svc UserService
-	cfg config.Config
+	cfg *config.Config
 }
 
-func NewUserHandler(s UserService, c config.Config) *UserHandler {
+func NewUserHandler(s UserService, c *config.Config) *UserHandler {
 	return &UserHandler{svc: s, cfg: c}
 }
 

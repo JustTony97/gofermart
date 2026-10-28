@@ -17,11 +17,11 @@ type UserRepository interface {
 }
 
 type UserService struct {
-	cfg  config.Config
+	cfg  *config.Config
 	repo UserRepository
 }
 
-func NewUserService(r UserRepository, c config.Config) *UserService {
+func NewUserService(r UserRepository, c *config.Config) *UserService {
 	return &UserService{repo: r, cfg: c}
 }
 
