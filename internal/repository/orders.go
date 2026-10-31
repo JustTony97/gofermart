@@ -2,10 +2,12 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/JustTony97/gofermart/internal/models"
 	"github.com/gofrs/uuid/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -52,4 +54,21 @@ func (r *OrderRepository) GetOrders(ctx context.Context, userID uuid.UUID) ([]mo
 	}
 
 	return orders, nil
+}
+
+func (r *OrderRepository) CreateOrder(ctx context.Context, userID uuid.UUID, orderID int) error {
+	query := `
+		INSERT INTO orders (id, user_id, status) 
+		VALUES ($1, $2, $3) 
+	`
+	_, err := r.db.ExecContext(ctx, query, orderID, userID, models.StatusNew)
+
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return models.ErrOrderAlreadyExists
+		}
+		return err
+	}
+	return nil
 }

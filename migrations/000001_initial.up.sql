@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS orders (
-    id INTEGER PRIMARY KEY,
+    id BIGINT PRIMARY KEY,
     status VARCHAR(50) NOT NULL,
     user_id UUID NOT NULL,
     reward_points INTEGER DEFAULT 0,
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS orders (
 CREATE TABLE IF NOT EXISTS transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
-    order_id INTEGER NULL,
+    order_id BIGINT NULL,
     amount NUMERIC(12, 2) NOT NULL,
     type VARCHAR(50) NOT NULL,
     processed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

@@ -14,3 +14,12 @@ type Order struct {
 	UploadedAt time.Time `json:"uploaded_at" db:"created_at"`
 	ModifiedAt time.Time `json:"-" db:"modified_at"`
 }
+
+type OrderStatus string
+
+const (
+	StatusNew        OrderStatus = "NEW"
+	StatusProcessing OrderStatus = "PROCESSING"
+	StatusInvalid    OrderStatus = "INVALID"
+	StatusProcessed  OrderStatus = "PROCESSED"
+)
