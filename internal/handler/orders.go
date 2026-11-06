@@ -18,7 +18,7 @@ import (
 
 type OrderService interface {
 	GetOrders(ctx context.Context, userID uuid.UUID) ([]models.Order, error)
-	CreateOrder(ctx context.Context, userID uuid.UUID, orderID int) error
+	CreateOrder(ctx context.Context, userID uuid.UUID, orderID int64) error
 }
 
 type OrderHandler struct {
@@ -60,12 +60,14 @@ func (h *OrderHandler) UploadOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var orderID int
-
-	bodyBytes, _ := io.ReadAll(r.Body)
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "failed to read body", http.StatusBadRequest)
+		return
+	}
 	defer r.Body.Close()
 
-	orderID, err := strconv.Atoi(strings.TrimSpace(string(bodyBytes)))
+	orderID, err := strconv.ParseInt(strings.TrimSpace(string(bodyBytes)), 10, 64)
 	if err != nil {
 		http.Error(w, "invalid order id format", http.StatusBadRequest)
 		return

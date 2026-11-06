@@ -18,3 +18,8 @@ type UserAuthRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
+
+type UserBalanceResponse struct {
+	Current   float64 `json:"current"`
+	Withdrawn float64 `json:"withdrawn"`
+}
