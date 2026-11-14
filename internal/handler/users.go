@@ -9,11 +9,10 @@ import (
 
 	"github.com/JustTony97/gofermart/internal/config"
 	"github.com/JustTony97/gofermart/internal/models"
-	"github.com/gofrs/uuid/v5"
 )
 
 type UserService interface {
-	CreateUser(ctx context.Context, user models.UserAuthRequest) (uuid.UUID, error)
+	CreateUser(ctx context.Context, user models.UserAuthRequest) (string, error)
 	LoginUser(ctx context.Context, user models.UserAuthRequest) (string, error)
 }
 
@@ -33,7 +32,8 @@ func (u *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	_, err = u.svc.CreateUser(r.Context(), userAuth)
+	ctx := r.Context()
+	token, err := u.svc.CreateUser(ctx, userAuth)
 	if err != nil {
 		if errors.Is(err, models.ErrUserAlreadyExists) {
 			http.Error(w, err.Error(), http.StatusConflict)
@@ -42,7 +42,10 @@ func (u *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusCreated)
+
+	u.setAuthCookie(w, token)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 }
 
 func (u *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -62,14 +65,17 @@ func (u *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	cookie := http.Cookie{
+	u.setAuthCookie(w, token)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+}
+
+func (u *UserHandler) setAuthCookie(w http.ResponseWriter, token string) {
+	http.SetCookie(w, &http.Cookie{
 		Name:     "Authorization",
 		Value:    token,
 		Path:     "/",
 		HttpOnly: true,
 		Expires:  time.Now().Add(u.cfg.JWTExp),
-	}
-	http.SetCookie(w, &cookie)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	})
 }

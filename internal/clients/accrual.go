@@ -4,10 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/JustTony97/gofermart/internal/logger"
 	"github.com/JustTony97/gofermart/internal/models"
 )
 
@@ -54,11 +57,24 @@ func (c *AccrualServiceClient) GetOrder(ctx context.Context, orderNumber string)
 		if retryAfterStr != "" {
 			if s, err := strconv.Atoi(retryAfterStr); err == nil {
 				seconds = s
+			} else {
+				logger.Log.Warnf("failed to parse Retry-After header %q: %v", retryAfterStr, err)
 			}
 		}
 		return models.GetAccrualResponse{}, &models.ErrTooManyRequests{RetryAfter: time.Duration(seconds) * time.Second}
 
 	default:
-		return models.GetAccrualResponse{}, fmt.Errorf("unexpected accrual status code: %d", resp.StatusCode)
+		bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
+		bodyText := strings.TrimSpace(string(bodyBytes))
+
+		if resp.StatusCode >= http.StatusInternalServerError {
+			return models.GetAccrualResponse{}, &models.ErrAccrualServerError{
+				StatusCode: resp.StatusCode,
+				Text:       bodyText,
+			}
+		}
+
+		return models.GetAccrualResponse{}, fmt.Errorf("unexpected accrual status code %d: %s", resp.StatusCode, bodyText)
 	}
+
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/JustTony97/gofermart/internal/config"
 	"github.com/JustTony97/gofermart/internal/logger"
@@ -89,7 +90,7 @@ func (s *OrderService) ProcessProcessingOrder(ctx context.Context, accrualClient
 
 		capturedOrderID = orderID
 
-		resp, err := accrualClient.GetOrder(ctx, strconv.FormatInt(orderID, 10))
+		resp, err := s.fetchAccrualWithRetry(ctx, accrualClient, orderID)
 		if err != nil {
 			var notRegisteredErr *models.ErrOrderNotRegisteredInAccrual
 			if errors.As(err, &notRegisteredErr) {
@@ -128,4 +129,41 @@ func (s *OrderService) ProcessProcessingOrder(ctx context.Context, accrualClient
 	}
 
 	return capturedOrderID, nil
+}
+
+func (s *OrderService) fetchAccrualWithRetry(ctx context.Context, accrualClient AccrualClient, orderID int64) (models.GetAccrualResponse, error) {
+	const (
+		maxAttempts = 3
+		retryDelay  = 500 * time.Millisecond
+	)
+
+	var lastErr error
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		resp, err := accrualClient.GetOrder(ctx, strconv.FormatInt(orderID, 10))
+		if err == nil {
+			return resp, nil
+		}
+
+		var serverErr *models.ErrAccrualServerError
+		if !errors.As(err, &serverErr) {
+			return models.GetAccrualResponse{}, err
+		}
+
+		lastErr = err
+		if attempt == maxAttempts {
+			break
+		}
+
+		logger.Log.Warnf("accrual server error for order %d (attempt %d/%d): %v, retrying in %v",
+			orderID, attempt, maxAttempts, err, retryDelay)
+
+		select {
+		case <-ctx.Done():
+			return models.GetAccrualResponse{}, ctx.Err()
+		case <-time.After(retryDelay):
+		}
+	}
+
+	return models.GetAccrualResponse{}, fmt.Errorf("fetch accrual failed after %d attempts: %w", maxAttempts, lastErr)
 }

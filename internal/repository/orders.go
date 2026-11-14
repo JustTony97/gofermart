@@ -44,7 +44,17 @@ func (r *OrderRepository) CreateOrder(ctx context.Context, userID uuid.UUID, ord
 	_, err := r.db.ExecContext(ctx, query, orderID, userID, models.StatusNew)
 	if err != nil {
 		var pgErr *pgconn.PgError
+
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			var existingUserID uuid.UUID
+			selectQuery := `SELECT user_id FROM orders WHERE id = $1`
+			if selErr := r.db.QueryRowContext(ctx, selectQuery, orderID).Scan(&existingUserID); selErr != nil {
+				return selErr
+			}
+
+			if existingUserID != userID {
+				return models.ErrOrderAlreadyExistsByAnotherUser
+			}
 			return models.ErrOrderAlreadyExists
 		}
 		return err

@@ -77,7 +77,7 @@ func (r *TransactionRepository) GetWithdrawals(ctx context.Context, userID uuid.
 		SELECT order_id as order, amount as sum, processed_at
 		FROM transactions
 		WHERE user_id = $1 AND type = 'WITHDRAWAL'
-		ORDER BY processed_at ASC
+		ORDER BY processed_at DESC
 	`
 	var withdrawals []models.WithdrawalResponse
 	err := r.db.SelectContext(ctx, &withdrawals, query, userID)

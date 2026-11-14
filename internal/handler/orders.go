@@ -90,6 +90,10 @@ func (h *OrderHandler) UploadOrder(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			return
+		} else if errors.Is(err, models.ErrOrderAlreadyExistsByAnotherUser) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			return
 		} else {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

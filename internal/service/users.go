@@ -25,13 +25,18 @@ func NewUserService(r UserRepository, c *config.Config) *UserService {
 	return &UserService{repo: r, cfg: c}
 }
 
-func (s *UserService) CreateUser(ctx context.Context, user models.UserAuthRequest) (uuid.UUID, error) {
+func (s *UserService) CreateUser(ctx context.Context, user models.UserAuthRequest) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return uuid.Nil, err
+		return "", err
 	}
 	user.Password = string(hashedPassword)
-	return s.repo.CreateUser(ctx, user)
+	userID, err := s.repo.CreateUser(ctx, user)
+	if err != nil {
+		return "", err
+	}
+	return s.generateJWT(userID)
+
 }
 
 func (s *UserService) LoginUser(ctx context.Context, userAuth models.UserAuthRequest) (string, error) {
