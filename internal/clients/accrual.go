@@ -58,7 +58,11 @@ func (c *AccrualServiceClient) GetOrder(ctx context.Context, orderNumber string)
 			if s, err := strconv.Atoi(retryAfterStr); err == nil {
 				seconds = s
 			} else {
-				logger.Log.Warnf("failed to parse Retry-After header %q: %v", retryAfterStr, err)
+				logger.Log.Warn("failed to parse Retry-After header",
+					"retry_after", retryAfterStr,
+					"error", err,
+				)
+
 			}
 		}
 		return models.GetAccrualResponse{}, &models.ErrTooManyRequests{RetryAfter: time.Duration(seconds) * time.Second}

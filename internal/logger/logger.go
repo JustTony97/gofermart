@@ -1,21 +1,14 @@
 package logger
 
 import (
+	"log/slog"
 	"os"
-	"time"
-
-	"github.com/sirupsen/logrus"
 )
 
-var Log *logrus.Logger
+var Log *slog.Logger
 
 func Init() {
-	Log = logrus.New()
-	Log.SetOutput(os.Stdout)
-	Log.SetFormatter(&logrus.TextFormatter{
-		FullTimestamp:   true,
-		TimestampFormat: time.RFC3339,
-		DisableColors:   false,
-	})
-	Log.SetLevel(logrus.InfoLevel)
+	handler := slog.NewTextHandler(os.Stdout, nil)
+	Log = slog.New(handler)
+	slog.SetDefault(Log)
 }

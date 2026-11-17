@@ -27,7 +27,7 @@ func NewOrderPoller(c *config.Config, s OrderService) *OrdersRegisterPoller {
 }
 
 func (p *OrdersRegisterPoller) StartPolling(ctx context.Context, workerID int) {
-	logger.Log.Infof("Worker id=%d start polling", workerID)
+	logger.Log.Info("Worker start polling", "worker_id", workerID)
 	ticker := time.NewTicker(p.cfg.OrderRegisterInterval)
 	defer ticker.Stop()
 	for {
@@ -42,13 +42,16 @@ func (p *OrdersRegisterPoller) StartPolling(ctx context.Context, workerID int) {
 					if errors.Is(err, models.ErrOrderNotFound) {
 						break
 					}
-					logger.Log.Error(err)
+					logger.Log.Error(err.Error())
 					break
 				}
-				logger.Log.Infof("Worker id=%d changed order id=%d status to processing", workerID, orderID)
+				logger.Log.Info("changed order status to processing",
+					"worker_id", workerID,
+					"order_id", orderID,
+				)
 			}
 		case <-ctx.Done():
-			logger.Log.Infof("Worker id=%d stopping...", workerID)
+			logger.Log.Info("Worker stopping...", "worker_id", workerID)
 			return
 		}
 	}

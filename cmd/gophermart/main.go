@@ -33,7 +33,8 @@ func main() {
 
 	db, err := sqlx.Connect("pgx", cfg.DatabaseDSN)
 	if err != nil {
-		logger.Log.Fatalf("Failed to connect to database: %v", err)
+		logger.Log.Error("Failed to connect to database", "error", err)
+		os.Exit(1)
 	}
 	defer db.Close()
 
@@ -61,9 +62,10 @@ func main() {
 	startWorkers(ctx, &wg, &cfg, orderService, accrualClient)
 
 	go func() {
-		log.Printf("Server started on %s", cfg.ServerAddress)
+		logger.Log.Info("Server started", "address", cfg.ServerAddress)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Log.Fatalf("HTTP server ListenAndServe error: %v", err)
+			logger.Log.Error("HTTP server ListenAndServe error", "error", err)
+			os.Exit(1)
 		}
 	}()
 
@@ -74,7 +76,7 @@ func main() {
 	defer cancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		logger.Log.Errorf("HTTP server Shutdown failed: %v", err)
+		logger.Log.Error("HTTP server Shutdown failed", "error", err)
 	}
 
 	wg.Wait()

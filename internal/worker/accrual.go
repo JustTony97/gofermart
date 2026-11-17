@@ -30,7 +30,7 @@ func NewAccrualPoller(c *config.Config, s OrderAccrualService, cl service.Accrua
 }
 
 func (p *AccrualPoller) StartPolling(ctx context.Context, workerID int) {
-	logger.Log.Infof("Worker id=%d start polling accrual", workerID)
+	logger.Log.Info("Worker start polling accrual", "worker_id", workerID)
 	ticker := time.NewTicker(p.cfg.OrderRegisterInterval)
 	defer ticker.Stop()
 	for {
@@ -47,17 +47,25 @@ func (p *AccrualPoller) StartPolling(ctx context.Context, workerID int) {
 					}
 					var rateLimitErr *models.ErrTooManyRequests
 					if errors.As(err, &rateLimitErr) {
-						logger.Log.Warnf("Worker id=%d rate limit hit! Sleeping for %v", workerID, rateLimitErr.RetryAfter)
+						logger.Log.Warn("Rate limit hit, sleeping",
+							"worker_id", workerID,
+							"retry_after", rateLimitErr.RetryAfter,
+						)
+
 						time.Sleep(rateLimitErr.RetryAfter)
 						break
 					}
-					logger.Log.Error(err)
+					logger.Log.Error(err.Error())
 					break
 				}
-				logger.Log.Infof("Worker id=%d processed accrual order id=%d", workerID, orderID)
+				logger.Log.Info("Processed accrual order",
+					"worker_id", workerID,
+					"order_id", orderID,
+				)
+
 			}
 		case <-ctx.Done():
-			logger.Log.Infof("Worker id=%d stopping accrual poller...", workerID)
+			logger.Log.Info("Worker stopping accrual poller...", "worker_id", workerID)
 			return
 		}
 	}

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/JustTony97/gofermart/internal/logger"
-	"github.com/sirupsen/logrus"
 )
 
 type (
@@ -49,13 +48,13 @@ func WithLogging(h http.Handler) http.Handler {
 
 		duration := time.Since(start)
 
-		logger.Log.WithFields(logrus.Fields{
-			"uri":      uri,
-			"method":   method,
-			"status":   responseData.status,
-			"duration": duration,
-			"size":     responseData.size,
-		}).Info()
+		logger.Log.Info("HTTP request",
+			"uri", uri,
+			"method", method,
+			"status", responseData.status,
+			"duration", duration,
+			"size", responseData.size,
+		)
 
 	}
 	return http.HandlerFunc(logFn)

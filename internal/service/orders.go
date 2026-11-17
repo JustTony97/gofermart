@@ -67,7 +67,7 @@ func (s *OrderService) ProcessNewOrder(ctx context.Context) (int64, error) {
 		}
 
 		capturedOrderID = orderID
-		logger.Log.Infof("Start processing order=%d", orderID)
+		logger.Log.Info("Start processing order=%d", orderID)
 
 		return s.repo.UpdateStatusWithinTx(ctx, tx, orderID, models.StatusProcessing)
 	})
@@ -95,10 +95,10 @@ func (s *OrderService) ProcessProcessingOrder(ctx context.Context, accrualClient
 			var notRegisteredErr *models.ErrOrderNotRegisteredInAccrual
 			if errors.As(err, &notRegisteredErr) {
 				if updateErr := s.repo.UpdateStatusWithinTx(ctx, tx, orderID, models.StatusInvalid); updateErr != nil {
-					logger.Log.Error(updateErr)
+					logger.Log.Error(updateErr.Error())
 					return updateErr
 				}
-				logger.Log.Warn(notRegisteredErr)
+				logger.Log.Warn(notRegisteredErr.Error())
 				return nil
 			}
 			return err
@@ -155,8 +155,13 @@ func (s *OrderService) fetchAccrualWithRetry(ctx context.Context, accrualClient 
 			break
 		}
 
-		logger.Log.Warnf("accrual server error for order %d (attempt %d/%d): %v, retrying in %v",
-			orderID, attempt, maxAttempts, err, retryDelay)
+		logger.Log.Warn("accrual server error, retrying",
+			"order_id", orderID,
+			"attempt", attempt,
+			"max_attempts", maxAttempts,
+			"retry_delay", retryDelay,
+			"error", err,
+		)
 
 		select {
 		case <-ctx.Done():

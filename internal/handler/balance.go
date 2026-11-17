@@ -43,7 +43,7 @@ func (b *BalanceHandler) GetBalance(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
-		logger.Log.Error(err)
+		logger.Log.Error(err.Error())
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -86,7 +86,7 @@ func (b *BalanceHandler) Withdraw(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		} else {
-			logger.Log.Error(err)
+			logger.Log.Error(err.Error())
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
@@ -105,7 +105,7 @@ func (b *BalanceHandler) GetWithdrawals(w http.ResponseWriter, r *http.Request) 
 
 	withdrawals, err := b.svc.GetWithdrawals(ctx, userID)
 	if err != nil {
-		logger.Log.Error(err)
+		logger.Log.Error(err.Error())
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}

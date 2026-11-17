@@ -39,7 +39,7 @@ func (h *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 	}
 	orders, err := h.svc.GetOrders(ctx, userID)
 	if err != nil {
-		logger.Log.Error(err)
+		logger.Log.Error(err.Error())
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
