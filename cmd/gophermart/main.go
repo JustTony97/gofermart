@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -56,7 +57,8 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	startWorkers(ctx, &cfg, orderService, accrualClient)
+	var wg sync.WaitGroup
+	startWorkers(ctx, &wg, &cfg, orderService, accrualClient)
 
 	go func() {
 		log.Printf("Server started on %s", cfg.ServerAddress)
@@ -75,6 +77,7 @@ func main() {
 		logger.Log.Errorf("HTTP server Shutdown failed: %v", err)
 	}
 
+	wg.Wait()
 	logger.Log.Info("Application stopped completely")
 }
 
@@ -105,14 +108,24 @@ func initRouter(cfg config.Config, userService *service.UserService, orderServic
 	return r
 }
 
-func startWorkers(ctx context.Context, cfg *config.Config, orderService *service.OrderService, accrualClient *clients.AccrualServiceClient) {
+func startWorkers(ctx context.Context, wg *sync.WaitGroup, cfg *config.Config, orderService *service.OrderService, accrualClient *clients.AccrualServiceClient) {
 	ordersPoller := worker.NewOrderPoller(cfg, orderService)
 	for i := 0; i < cfg.OrderRegisterWorkers; i++ {
-		go ordersPoller.StartPolling(ctx, i)
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			ordersPoller.StartPolling(ctx, i)
+		}()
 	}
 
 	accrualPoller := worker.NewAccrualPoller(cfg, orderService, accrualClient)
 	for i := 0; i < cfg.AccrualPollWorkers; i++ {
-		go accrualPoller.StartPolling(ctx, i)
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			accrualPoller.StartPolling(ctx, i)
+		}()
 	}
 }
