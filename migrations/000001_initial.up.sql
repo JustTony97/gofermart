@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS orders (
     id BIGINT PRIMARY KEY,
     status VARCHAR(50) NOT NULL,
     user_id UUID NOT NULL,
-    reward_points INTEGER DEFAULT 0,
+    reward_points NUMERIC(12, 2) DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     modified_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     

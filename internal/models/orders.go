@@ -10,7 +10,7 @@ type Order struct {
 	ID         int64     `json:"number" db:"id"`
 	Status     string    `json:"status" db:"status"`
 	UserID     uuid.UUID `json:"-" db:"user_id"`
-	Accrual    *int      `json:"accrual,omitempty" db:"reward_points"`
+	Accrual    *float64  `json:"accrual,omitempty" db:"reward_points"`
 	UploadedAt time.Time `json:"uploaded_at" db:"created_at"`
 	ModifiedAt time.Time `json:"-" db:"modified_at"`
 }

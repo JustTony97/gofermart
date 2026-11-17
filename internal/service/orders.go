@@ -67,7 +67,7 @@ func (s *OrderService) ProcessNewOrder(ctx context.Context) (int64, error) {
 		}
 
 		capturedOrderID = orderID
-		logger.Log.Info("Start processing order=%d", orderID)
+		logger.Log.Info("Start processing order", "order_id", orderID)
 
 		return s.repo.UpdateStatusWithinTx(ctx, tx, orderID, models.StatusProcessing)
 	})
