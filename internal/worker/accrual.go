@@ -31,7 +31,7 @@ func NewAccrualPoller(c *config.Config, s OrderAccrualService, cl service.Accrua
 
 func (p *AccrualPoller) StartPolling(ctx context.Context, workerID int) {
 	logger.Log.Info("Worker start polling accrual", "worker_id", workerID)
-	ticker := time.NewTicker(p.cfg.OrderRegisterInterval)
+	ticker := time.NewTicker(p.cfg.AccrualPollInterval)
 	defer ticker.Stop()
 	for {
 		select {
@@ -52,7 +52,12 @@ func (p *AccrualPoller) StartPolling(ctx context.Context, workerID int) {
 							"retry_after", rateLimitErr.RetryAfter,
 						)
 
-						time.Sleep(rateLimitErr.RetryAfter)
+						select {
+						case <-time.After(rateLimitErr.RetryAfter):
+						case <-ctx.Done():
+							logger.Log.Info("Worker stopping accrual poller...", "worker_id", workerID)
+							return
+						}
 						break
 					}
 					logger.Log.Error(err.Error())
