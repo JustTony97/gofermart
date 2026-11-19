@@ -14,8 +14,6 @@ type TransactionRepository interface {
 	GetUserBalanceForUpdateWithinTx(ctx context.Context, tx *sqlx.Tx, userID uuid.UUID) (float64, error)
 	UpdateUserBalanceWithinTx(ctx context.Context, tx *sqlx.Tx, userID uuid.UUID, amount float64) error
 	RecordTransactionWithinTx(ctx context.Context, tx *sqlx.Tx, orderID int64, userID uuid.UUID, amount float64) error
-
-	// Новые контракты для репозитория
 	GetUserBalance(ctx context.Context, userID uuid.UUID) (models.UserBalanceResponse, error)
 	GetWithdrawals(ctx context.Context, userID uuid.UUID) ([]models.WithdrawalResponse, error)
 }
