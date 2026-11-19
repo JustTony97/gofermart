@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 	"time"
 
 	"github.com/JustTony97/gofermart/internal/config"
@@ -19,6 +20,7 @@ type AccrualPoller struct {
 	svc           OrderAccrualService
 	cfg           *config.Config
 	accrualClient service.AccrualClient
+	retryAfter    atomic.Int64
 }
 
 func NewAccrualPoller(c *config.Config, s OrderAccrualService, cl service.AccrualClient) *AccrualPoller {
@@ -40,6 +42,18 @@ func (p *AccrualPoller) StartPolling(ctx context.Context, workerID int) {
 				if ctx.Err() != nil {
 					return
 				}
+
+				if wait := time.Until(time.Unix(0, p.retryAfter.Load())); wait > 0 {
+					timer := time.NewTimer(wait)
+					select {
+					case <-timer.C:
+					case <-ctx.Done():
+						timer.Stop()
+						logger.Log.Info("Worker stopping accrual poller...", "worker_id", workerID)
+						return
+					}
+				}
+
 				orderID, err := p.svc.ProcessProcessingOrder(ctx, p.accrualClient)
 				if err != nil {
 					if errors.Is(err, models.ErrOrderNotFound) {
@@ -51,13 +65,8 @@ func (p *AccrualPoller) StartPolling(ctx context.Context, workerID int) {
 							"worker_id", workerID,
 							"retry_after", rateLimitErr.RetryAfter,
 						)
-
-						select {
-						case <-time.After(rateLimitErr.RetryAfter):
-						case <-ctx.Done():
-							logger.Log.Info("Worker stopping accrual poller...", "worker_id", workerID)
-							return
-						}
+						until := time.Now().Add(rateLimitErr.RetryAfter).UnixNano()
+						p.retryAfter.Store(until)
 						break
 					}
 					logger.Log.Error(err.Error())
