@@ -1,0 +1,16 @@
+template: testify
+dir: "{{.InterfaceDir}}/mocks"
+pkgname: mocks
+filename: "mock_{{.InterfaceName}}.go"
+structname: "{{.Mock}}{{.InterfaceName}}"
+
+packages:
+  github.com/JustTony97/gofermart/internal/service:
+    config:
+      all: true
+  github.com/JustTony97/gofermart/internal/worker:
+    config:
+      all: true
+  github.com/JustTony97/gofermart/internal/handler:
+    config:
+      all: true
