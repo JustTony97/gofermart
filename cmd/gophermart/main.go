@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -20,6 +21,9 @@ import (
 	"github.com/JustTony97/gofermart/internal/service"
 	"github.com/JustTony97/gofermart/internal/worker"
 	"github.com/go-chi/chi/v5"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 )
@@ -37,6 +41,11 @@ func main() {
 		os.Exit(1)
 	}
 	defer db.Close()
+
+	if err := runMigrations(cfg.MigrationsPath, cfg.DatabaseDSN); err != nil {
+		logger.Log.Error("Failed to run migrations", "error", err)
+		os.Exit(1)
+	}
 
 	tx := repository.NewTxManager(db)
 	userRepo := repository.NewUsersRepository(db)
@@ -130,4 +139,18 @@ func startWorkers(ctx context.Context, wg *sync.WaitGroup, cfg *config.Config, o
 			accrualPoller.StartPolling(ctx, i)
 		}()
 	}
+}
+
+func runMigrations(migrationsPath, databaseDSN string) error {
+	m, err := migrate.New(migrationsPath, databaseDSN)
+	if err != nil {
+		return fmt.Errorf("init migrate: %w", err)
+	}
+	defer m.Close()
+
+	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return fmt.Errorf("apply migrations: %w", err)
+	}
+
+	return nil
 }
